@@ -1,5 +1,10 @@
 import numpy as np
 
+def timeformat(secs):
+    if type(secs) is not int: secs = int(secs)
+    # Formats an integer secs into a HH:MM:SS format.
+    return f"{str(secs // 3600).zfill(2)}:{str((secs // 60) % 60).zfill(2)}:{str(secs % 60).zfill(2)}"
+
 def round_percentages(numbers, norm=100):
     # make sure numbers add up to 100
     numbers = np.array(numbers)
