@@ -10,6 +10,7 @@ class WordGenerator:
         self.trained = False
         self.alphabet = list()
         self.distributions = dict()
+        self.words = []
         self.depth = depth
 
     def summary(self, max_depth=1):
@@ -83,7 +84,8 @@ class WordGenerator:
         print(f"Alphabet: {self.alphabet}")
 
         # shuffle words (should make ETAs more stable)
-        np.random.shuffle(words)
+        shuffled_indices = np.array(range(0, len(words)))
+        np.random.shuffle(shuffled_indices)
 
         # commence training
         trainingtext = "Training..."
@@ -91,7 +93,7 @@ class WordGenerator:
         start = time()
         print(trainingtext, end='\r')
 
-        for w, word in enumerate(words):
+        for w, word in enumerate(words[shuffled_indices]):
             if verbose > 1:
                 print(f"Word: {word}:")
 
@@ -159,6 +161,9 @@ class WordGenerator:
 
         self.trained = True
 
+        # save words for later
+        self.words = words
+
         self.summary()
         
     def generate_word(self, length_limit=30, length_penalty=0, reroll_short_words_threshold=2, show_problems=True, verbose=0):
@@ -212,7 +217,6 @@ class WordGenerator:
                     break
 
                 result = f"{result}{new_character}"
-                #print(result)
 
             if len(result) <= reroll_short_words_threshold:
                 problems.append("reroll")
@@ -221,14 +225,23 @@ class WordGenerator:
             if len(result) == length_limit:
                 problems.append("lengthlimit")
 
+            # check if the word is overfit
+            j = np.searchsorted(self.words, result)
+            for s in [-1, 0, 1]:
+                index = np.clip(j+s, 0, len(self.words) - 1)
+                if self.words[index] == result:
+                    problems.append("overfit")
+                    break
+
             if show_problems and len(problems) > 0:
                 return f"{result} ({nswg_utils.print_list_with_duplicates(problems)})"
             else:
                 return result
 
+
 wg = WordGenerator(depth=8)
 
 wg.train("ger.txt")
 
-for _ in range(100):
+for _ in range(200):
     print(wg.generate_word(length_limit=100, length_penalty=0))

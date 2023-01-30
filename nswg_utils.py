@@ -1,4 +1,5 @@
 import numpy as np
+import string
 
 def timeformat(secs):
     if type(secs) is not int: secs = int(secs)
@@ -23,12 +24,22 @@ def round_percentages(numbers, norm=100):
 
     return floors
 
+def yesno(bool, if_false, if_true):
+    if bool:
+        return if_true
+    else:
+        return if_false
+
+
 def print_list_with_duplicates(L):
     counts = dict()
     for l in L:
         counts[l] = counts.get(l, 0) + 1
 
-    return f"{', '.join([f'{k} x{counts[k]}' for k in counts.keys()])}"
+    def func(k):
+        return yesno(counts[k] > 1, "", f" x{counts[k]}")
+
+    return f"{', '.join([f'{k}{func(k)}' for k in counts.keys()])}"
 
 """
 a = [13.4, 16.8, 22.2, 31.6, 16]
