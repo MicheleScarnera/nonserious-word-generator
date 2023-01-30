@@ -43,15 +43,19 @@ class WordGenerator:
             words = f.read()
 
         # remove punctuation
+        print("Removing punctuation...")
         words = words.translate(str.maketrans('', '', string.punctuation))
 
         # remove numbers
+        print("Removing numbers...")
         words = words.translate(str.maketrans('', '', "0123456789"))
 
         # make it all lowercase
+        print("Making the corpus lowercase...")
         words = words.lower()
 
         # make other nasty characters easily identifiable
+        print("Removing nasty characters...")
         easily_identifiable = '#'
         for nasty in ' \n\t¹²³¤½¼¾‘’×+±ð¦§©¨ª«»¬®¯°º´¶·¸ˆ–—‚“”„†‡•…‰‹›™�':
             words = words.replace(nasty, easily_identifiable)
@@ -77,6 +81,9 @@ class WordGenerator:
         self.alphabet.append(end_character)
 
         print(f"Alphabet: {self.alphabet}")
+
+        # shuffle words (should make ETAs more stable)
+        np.random.shuffle(words)
 
         # commence training
         trainingtext = "Training..."
