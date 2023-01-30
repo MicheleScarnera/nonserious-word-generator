@@ -35,6 +35,8 @@ class WordGenerator:
         if corpus is None:
             print("Corpus was not given. Getting TensorFlow's shakespeare.txt...")
             corpus = 'shakespeare.txt'
+        else:
+            print(f"Creating a word generator on {corpus}...")
 
         # clean dataset
         with open(corpus, errors="replace") as f:
@@ -51,7 +53,7 @@ class WordGenerator:
 
         # make other nasty characters easily identifiable
         easily_identifiable = '#'
-        for nasty in (' ', '\n', '\t'):
+        for nasty in ' \n\t¹²³¤½¼¾‘’×+±ð¦§©¨ª«»¬®¯°º´¶·¸ˆ–—‚“”„†‡•…‰‹›™�':
             words = words.replace(nasty, easily_identifiable)
 
         # use easily_identifiable as a marker to split
@@ -110,17 +112,43 @@ class WordGenerator:
                 endch = '\n'
 
             if (w == W - 1) or (w % 500 == 0):
-                w_ = w+1
                 end = time()
-                average_time = (end - start) / w_
-                eta = int((average_time * (W - w_)))
 
-                print(f"{beginch}{trainingtext} {w_/W:.1%} ETA: {nswg_utils.timeformat(eta)}", end=endch)
+                if w == W - 1:
+                    secondpart = f"Took {nswg_utils.timeformat(end - start)}"
+                else:
+                    w_ = w + 1
+                    average_time = (end - start) / w_
+                    eta = int((average_time * (W - w_)))
+                    secondpart = f"{w_ / W:.1%} [ETA: {nswg_utils.timeformat(eta)}]"
+
+                print(f"{beginch}{trainingtext} {secondpart}", end=endch)
 
         # normalize
-        for key in self.distributions.keys():
+        start = time()
+        normtext = "Normalizing..."
+        K = len(self.distributions.keys())
+        for k, key in enumerate(self.distributions.keys()):
             value = self.distributions[key]
             self.distributions[key] = value / np.sum(value)
+
+            beginch = '\r'
+            endch = ''
+            if k == K - 1:
+                endch = '\n'
+
+            if (k == K - 1) or (k % 500 == 0):
+                end = time()
+
+                if k == K - 1:
+                    secondpart = f"Took {nswg_utils.timeformat(end - start)}"
+                else:
+                    k_ = k + 1
+                    average_time = (end - start) / k_
+                    eta = int((average_time * (K - k_)))
+                    secondpart = f"{k_ / K:.1%} [ETA: {nswg_utils.timeformat(eta)}]"
+
+                print(f"{beginch}{normtext} {secondpart}", end=endch)
 
         self.trained = True
 
@@ -193,7 +221,7 @@ class WordGenerator:
 
 wg = WordGenerator(depth=8)
 
-wg.train("wiki.txt")
+wg.train("ger.txt")
 
 for _ in range(100):
     print(wg.generate_word(length_limit=100, length_penalty=0))
