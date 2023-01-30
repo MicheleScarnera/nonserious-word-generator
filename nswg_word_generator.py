@@ -36,7 +36,7 @@ class WordGenerator:
             corpus = 'shakespeare.txt'
 
         # clean dataset
-        with open(corpus) as f:
+        with open(corpus, errors="replace") as f:
             words = f.read()
 
         # remove punctuation
@@ -107,7 +107,7 @@ class WordGenerator:
 
         self.summary()
         
-    def generate_word(self, length_limit=10, show_problems=True, verbose=0):
+    def generate_word(self, length_limit=10, length_penalty=0.01, show_problems=True, verbose=0):
         # TODO: depth hyperparameter
         result = ''
         problems = []
@@ -144,6 +144,11 @@ class WordGenerator:
             else:
                 dist = self.distributions['']
 
+            # apply length penalty
+            if length_penalty > 0:
+                dist[-1] = dist[-1] + len(result) * length_penalty
+                dist = dist / np.sum(dist)
+
             new_character = np.random.choice(a=self.alphabet, size=1, replace=True, p=dist)[0]
 
             if verbose > 1:
@@ -160,14 +165,9 @@ class WordGenerator:
         else:
             return result
 
+wg = WordGenerator(depth=4)
 
-
-
-
-
-wg = WordGenerator(depth=1)
-
-wg.train("span.txt")
+wg.train("wiki.txt")
 
 for _ in range(50):
-    print(wg.generate_word(length_limit=20))
+    print(wg.generate_word(length_limit=100, length_penalty=0.01))
