@@ -7,6 +7,11 @@ end_character = "<end>"
 
 class WordGenerator:
     def __init__(self, depth=1):
+        """
+        Initializes the word generator.
+
+        :param depth: How many letters will the word generator take into account to generate the next letter. For depth=1, only the last letter will be considered (making this generator a Markov Chain), for depth=2, the last two, et cetera.
+        """
         self.trained = False
         self.alphabet = list()
         self.distributions = dict()
@@ -14,13 +19,23 @@ class WordGenerator:
         self.depth = depth
 
     def summary(self, max_depth=1):
-        if self.depth <= max_depth:
-            print("Summary of the distribution:")
-            for key in self.distributions.keys():
-                rounded_values = [f"{p}%" for p in nswg_utils.round_percentages(self.distributions[key] * 100)]
-                print(f" - \'{key}\' -> {[f'{letter}: {percent}' for letter, percent in zip(self.alphabet, rounded_values)]};")
+        """
+        Prints a summary of the word generator.
+
+        :param max_depth: If the generator has depth bigger than this amount, its sampling distribution will not be printed.
+        :return: None
+        """
+        print(f"Word generator with depth {self.depth}")
+        if self.trained > 0:
+            if self.depth <= max_depth:
+                print("Summary of the distribution:")
+                for key in self.distributions.keys():
+                    rounded_values = [f"{p}%" for p in nswg_utils.round_percentages(self.distributions[key] * 100)]
+                    print(f" - \'{key}\' -> {[f'{letter}: {percent}' for letter, percent in zip(self.alphabet, rounded_values)]};")
+            else:
+                print(f"Summary of the distribution has been omitted due to large depth ({self.depth}). To override this, change the max_depth parameter (currently {max_depth}).")
         else:
-            print(f"Summary of the distribution has been omitted due to large depth ({self.depth}). To override this, change the max_depth parameter (currently {max_depth}).")
+            print("The word generator is not trained")
 
     def add_to_distribution(self, key, letter_seen):
         if key not in self.distributions:
@@ -166,7 +181,21 @@ class WordGenerator:
 
         self.summary()
         
-    def generate_word(self, length_limit=30, length_penalty=0, reroll_short_words_threshold=2, show_problems=True, verbose=0):
+    def generate_word(self, length_limit=30, length_penalty=0, min_word_length=2, show_problems=True, verbose=0):
+        """
+        Generate a word using a trained word generator.
+
+        :param length_limit: The generation of the word will be halted when the word is length_limit characters long.
+
+        :param length_penalty: (Unnecessary) Penalize word length by linearly increasing the probability of  terminating the word. The additional probabilty of the word halting due to this is (length_penalty * current length of the word).
+
+        :param min_word_length: If the generated word is shorter than this, the generation will be rerolled.
+
+        :param show_problems: Include in the output anything that went wrong in the generation (deadend, reroll, overfit)
+
+        :param verbose: Level of verbosity. Mostly unused.
+        :return: string
+        """
         problems = []
         while True:
             result = ''
@@ -191,9 +220,13 @@ class WordGenerator:
                             break
                         except KeyError:
                             if d > 1:
+                                # the word generator doesn't know what to do with the current information.
+                                # depth will be reduced by 1 and the generator will try again
                                 problems.append("deadend-minor")
                                 continue
                             else:
+                                # if the generator meets dead ends for every depth,
+                                # the word will continue as if there is no prior information
                                 dist = self.distributions['']
                                 safe_index = l
                                 problems.append("deadend-major")
@@ -218,7 +251,7 @@ class WordGenerator:
 
                 result = f"{result}{new_character}"
 
-            if len(result) <= reroll_short_words_threshold:
+            if len(result) <= min_word_length:
                 problems.append("reroll")
                 continue
 
@@ -226,6 +259,8 @@ class WordGenerator:
                 problems.append("lengthlimit")
 
             # check if the word is overfit
+            # binary searches where the generated word would be in the training set,
+            # and if it finds a perfect match it's deemed overfit
             j = np.searchsorted(self.words, result)
             for s in [-1, 0, 1]:
                 index = np.clip(j+s, 0, len(self.words) - 1)
@@ -238,10 +273,3 @@ class WordGenerator:
             else:
                 return result
 
-
-wg = WordGenerator(depth=8)
-
-wg.train("ger.txt")
-
-for _ in range(200):
-    print(wg.generate_word(length_limit=100, length_penalty=0))
